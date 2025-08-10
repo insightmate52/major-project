@@ -1,0 +1,26 @@
+@"
+# Environment Variables & Secrets (CRITICAL!)
+.env
+.env.local
+.streamlit/secrets.toml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+"@ | Out-File -FilePath ".gitignore" -Encoding UTF8
