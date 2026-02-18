@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card-box">
+  <div class="page-title">📤 Upload Dataset</div>
+  <div class="page-subtitle">
+    Upload a CSV file to analyze insights, ask questions, and estimate future values
+  </div>
+
+  <form action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data" class="row g-3">
+    <div class="col-md-9">
+      <input type="file" name="file" class="form-control" required>
+    </div>
+    <div class="col-md-3">
+      <button class="btn btn-primary-custom w-100">
+        Analyze Dataset
+      </button>
+    </div>
+  </form>
+</div>
+
+{% if dataset_uploads %}
+<div class="card-box">
+  <div class="page-title">📂 Uploaded Datasets</div>
+
+  <table class="table table-bordered mt-3">
+    <thead>
+      <tr>
+        <th>File Name</th>
+        <th>Size (KB)</th>
+        <th>Rows</th>
+        <th>Columns</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in dataset_uploads %}
+      <tr>
+        <td>{{ d.filename }}</td>
+        <td>{{ d.size_kb }}</td>
+        <td>{{ d.rows }}</td>
+        <td>{{ d.columns }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% endblock %}
+

@@ -1,0 +1,313 @@
+:root {
+  --sky: #A0D2EB;
+  --ice: #E5EAF5;
+  --lavender: #D0BDF4;
+  --purple: #8458B3;
+  --dark: #494D5F;
+  --white: #FFFFFF;
+}
+
+/* =========================
+   GLOBAL
+========================= */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: var(--ice);
+  color: var(--dark);
+}
+
+/* =========================
+   LAYOUT
+========================= */
+.app-wrapper {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* =========================
+   SIDEBAR
+========================= */
+.sidebar {
+  width: 260px;
+  background: var(--purple);
+  color: var(--white);
+  padding: 24px 20px;
+}
+
+.sidebar h2 {
+  font-size: 1.3rem;
+  margin-bottom: 30px;
+  color: var(--white);
+}
+
+.sidebar a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--white);
+  text-decoration: none;
+  padding: 12px 14px;
+  border-radius: 10px;
+  margin-bottom: 6px;
+  transition: background 0.2s;
+}
+
+.sidebar a:hover {
+  background: rgba(255,255,255,0.18);
+}
+
+.sidebar .logout {
+  margin-top: 30px;
+  color: var(--sky);
+}
+
+/* =========================
+   MAIN CONTENT
+========================= */
+.main-content {
+  flex: 1;
+  padding: 32px;
+}
+
+/* =========================
+   CARDS
+========================= */
+.card-box {
+  background: var(--white);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 12px 24px rgba(73,77,95,0.12);
+  margin-bottom: 24px;
+}
+
+/* =========================
+   HEADINGS
+========================= */
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.page-subtitle {
+  color: var(--dark);
+  opacity: 0.75;
+  margin-bottom: 20px;
+}
+
+/* =========================
+   FORMS
+========================= */
+input,
+select {
+  border-radius: 12px !important;
+  padding: 12px;
+  border: 1px solid var(--lavender);
+}
+
+input:focus,
+select:focus {
+  border-color: var(--purple);
+  box-shadow: 0 0 0 2px rgba(132,88,179,0.2);
+}
+
+/* =========================
+   BUTTONS (LAVENDER THEME)
+========================= */
+
+/* Base button reset */
+.btn,
+button {
+  border-radius: 10px;
+  font-weight: 500;
+  transition: all 0.25s ease;
+}
+
+/* PRIMARY (Purple) */
+.btn-primary,
+.btn-primary-custom,
+.btn-send,
+.btn-insight {
+  background-color: var(--purple) !important;
+  color: var(--white) !important;
+  border: none !important;
+}
+
+.btn-primary:hover,
+.btn-primary-custom:hover,
+.btn-send:hover,
+.btn-insight:hover {
+  background-color: #7340A8 !important; /* darker purple */
+  transform: translateY(-1px);
+}
+
+/* WARNING / TRAIN (Lavender) */
+.btn-warning,
+.btn-warning-custom {
+  background-color: var(--lavender) !important;
+  color: var(--dark) !important;
+  border: none !important;
+}
+
+.btn-warning:hover,
+.btn-warning-custom:hover {
+  background-color: #C2ADF2 !important;
+}
+
+/* SUCCESS / RUN (Sky Blue soft) */
+.btn-success,
+.btn-success-custom {
+  background-color: var(--sky) !important;
+  color: var(--dark) !important;
+  border: none !important;
+}
+
+.btn-success:hover,
+.btn-success-custom:hover {
+  background-color: #8AC3E6 !important;
+}
+
+/* OUTLINE BUTTONS */
+.btn-outline-secondary {
+  border: 1px solid var(--purple) !important;
+  color: var(--purple) !important;
+  background: transparent !important;
+}
+
+.btn-outline-secondary:hover {
+  background-color: var(--purple) !important;
+  color: var(--white) !important;
+}
+
+/* DISABLED */
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+
+/* =========================
+   TABLE
+========================= */
+.table {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.table thead {
+  background: var(--lavender);
+}
+
+.table th {
+  font-weight: 600;
+  color: var(--dark);
+}
+
+.table td {
+  background: var(--white);
+}
+
+/* =========================
+   CHAT
+========================= */
+#chat-box {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+/* =========================
+   CODE / OUTPUT
+========================= */
+pre {
+  background: var(--dark);
+  color: var(--white);
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 0.9rem;
+}
+
+/* ===============================
+   LOGIN PAGE
+   =============================== */
+
+.login-page {
+  background: linear-gradient(
+    135deg,
+    #A0D2EB,
+    #E5EAF5
+  );
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-container {
+  width: 100%;
+  max-width: 420px;
+  padding: 20px;
+}
+
+.login-card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 35px;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.12);
+}
+
+.login-title {
+  font-weight: 600;
+  color: #494D5F;
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.login-subtitle {
+  text-align: center;
+  font-size: 14px;
+  color: #6c757d;
+  margin-bottom: 25px;
+}
+
+.login-card .form-control {
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.login-card .btn-primary {
+  background: #8458B3;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.login-card .btn-primary:hover {
+  background: #6f4aa5;
+}
+
+.login-footer {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 12px;
+  color: #999;
+}
+/* =========================
+   FIX SIDEBAR CLICK ISSUE
+========================= */
+
+.sidebar {
+  position: relative;
+  z-index: 1000;
+}
+
+.main-content {
+  position: relative;
+  z-index: 1;
+}
+
+

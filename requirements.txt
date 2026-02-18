@@ -1,0 +1,16 @@
+Flask
+gunicorn
+pandas
+numpy
+scikit-learn
+scipy
+joblib
+matplotlib
+seaborn
+reportlab
+supabase
+httpx
+google-generativeai
+werkzeug
+dotenv
+

@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- PAGE HEADER -->
+<div class="mb-4">
+  <h3 class="fw-bold mb-1">📊 Data Insights</h3>
+  <p class="text-muted mb-0">
+    Automatically generated key patterns and visual explanations from your dataset
+  </p>
+</div>
+
+<!-- TEXT INSIGHTS -->
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <h5 class="fw-semibold mb-3">📝 Top 5 Textual Insights</h5>
+
+    {% if dataset_summary.text_insights %}
+      <div class="list-group list-group-flush">
+        {% for i in dataset_summary.text_insights %}
+          <div class="list-group-item d-flex align-items-start">
+            <span class="badge bg-primary me-3 mt-1">Insight</span>
+            <span>{{ i }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-muted mb-0">No textual insights available.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- 📊 Custom Graph Generator -->
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <h5 class="fw-semibold mb-3">📊 Generate Custom Visualization</h5>
+
+    <div class="row g-3">
+
+      <div class="col-md-3">
+        <label class="form-label">Graph Type</label>
+        <select id="graphType" class="form-select">
+          <option value="bar">Bar Chart</option>
+          <option value="line">Line Chart</option>
+          <option value="pie">Pie Chart</option>
+          <option value="scatter">Scatter Plot</option>
+        </select>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label">X-Axis</label>
+        <select id="xAxis" class="form-select">
+          {% for col in dataset_summary.columns %}
+            <option value="{{ col }}">{{ col }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label">Y-Axis</label>
+        <select id="yAxis" class="form-select">
+          {% for col in dataset_summary.columns %}
+            <option value="{{ col }}">{{ col }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-1 d-flex align-items-end">
+        <button class="btn btn-primary w-100" onclick="generateGraph()">Go</button>
+      </div>
+
+    </div>
+
+    <!-- Graph Output -->
+    <div class="mt-4 text-center">
+      <img id="generatedGraph" class="img-fluid rounded shadow-sm" style="display:none;">
+    </div>
+
+  </div>
+</div>
+
+<!-- 🚨 CRITICAL RISK INSIGHTS -->
+<div class="card shadow-sm mt-4 border-danger">
+  <div class="card-body">
+
+    <h5 class="fw-semibold text-danger mb-3">
+      🚨 Top 5 Critical Risk Insights (Immediate Action Required)
+    </h5>
+
+    {% if red_flag_visuals and red_flag_visuals|length > 0 %}
+      <div class="row">
+        {% for v in red_flag_visuals %}
+          <div class="col-md-6 mb-4">
+            <div class="card h-100 border-danger shadow-sm">
+
+              <img
+                src="{{ url_for('static', filename='insights/' ~ v.image) }}"
+                class="img-fluid rounded-top"
+                alt="Risk visualization"
+              >
+
+              <div class="card-body">
+                <p class="small text-dark">
+                  {{ v.explanation }}
+                </p>
+                <span class="badge bg-danger">
+                  Severity: {{ v.severity }}
+                </span>
+              </div>
+
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-muted mb-0">
+        ✅ No critical risks detected in this dataset.
+      </p>
+    {% endif %}
+
+  </div>
+</div>
+<script>
+function generateGraph() {
+
+  const graphType = document.getElementById("graphType").value;
+  const xAxis = document.getElementById("xAxis").value;
+  const yAxis = document.getElementById("yAxis").value;
+
+  fetch("/generate_graph", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      graph_type: graphType,
+      x_axis: xAxis,
+      y_axis: yAxis
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.image_url) {
+      const img = document.getElementById("generatedGraph");
+      img.src = "/" + data.image_url;
+      img.style.display = "block";
+    }
+  })
+  .catch(error => console.error(error));
+}
+</script>
+{% endblock %}
+
