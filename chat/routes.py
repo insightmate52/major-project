@@ -102,7 +102,6 @@ Do NOT generate Python code.
 
         explanation = ask_gemini(explanation_prompt)
         return jsonify({"answer": explanation})
-
     # ===========================
     # 📊 ANALYTICAL MODE
     # ===========================
@@ -113,7 +112,7 @@ Do NOT generate Python code.
     if not generated_code:
         return jsonify({"error": "Model did not generate code"}), 500
 
-    # 🔹 Clean markdown formatting
+    # 🔹 Clean markdown formatting properly
     generated_code = generated_code.strip()
 
     if "```" in generated_code:
@@ -122,6 +121,11 @@ Do NOT generate Python code.
             generated_code = parts[1]
 
     generated_code = generated_code.replace("python", "").strip()
+
+    # 🔥 DEBUG PRINT
+    print("----- GENERATED RAW RESPONSE -----")
+    print(generated_code)
+    print("-----------------------------------")
 
     # ===========================
     # 🔎 VALIDATE PYTHON SYNTAX
@@ -132,9 +136,7 @@ Do NOT generate Python code.
     except SyntaxError as e:
         print("SYNTAX ERROR:", e)
         print("BAD CODE:\n", generated_code)
-        return jsonify({
-            "error": "Model generated invalid Python code. Please rephrase."
-        }), 500
+        return jsonify({"error": "Model generated invalid Python code."}), 500
 
     # ===========================
     # ⚙ EXECUTE SAFELY
@@ -152,10 +154,9 @@ Do NOT generate Python code.
 
         exec(generated_code, allowed_globals, local_vars)
 
-        # 🔹 Primary expected variable
         result = local_vars.get("result")
 
-        # 🔹 Auto-detect meaningful output if 'result' not defined
+        # Auto-detect fallback
         if result is None:
             for value in reversed(list(local_vars.values())):
                 if isinstance(value, (pd.Series, pd.DataFrame, int, float, str, dict)):
@@ -176,18 +177,15 @@ Do NOT generate Python code.
     # 🧾 RESPONSE HANDLING
     # ===========================
 
-    # 🔹 Simple results → direct response
     if isinstance(result, (int, float, str)):
         return jsonify({"answer": f"The result is {result}."})
 
-    # 🔹 Convert Series/DataFrame to string safely
     if isinstance(result, pd.Series):
         result = result.to_string()
 
     if isinstance(result, pd.DataFrame):
-        result = result.to_string(index=False)
+        result = result.head(20).to_string(index=False)
 
-    # 🔹 Explain complex result using Gemini
     explanation_prompt = f"""
 The dataset analysis produced the following result:
 
