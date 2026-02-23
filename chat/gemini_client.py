@@ -1,18 +1,13 @@
 import os
 import time
-import google.generativeai as genai
 from dotenv import load_dotenv
+from google import genai
 
-# Load environment variables
+# Load environment variables first
 load_dotenv()
 
-# Configure Gemini API
-genai.configure(
-    api_key=os.getenv("GEMINI_API_KEY")
-)
-
-# Create model instance
-model = genai.GenerativeModel("gemini-1.5-flash")
+# Create Gemini client
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 # Global token counter
 TOTAL_TOKENS_USED = 0
@@ -22,9 +17,10 @@ def ask_gemini(prompt: str) -> str:
     global TOTAL_TOKENS_USED
 
     try:
-        response = model.generate_content(
-            prompt,
-            generation_config={
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=prompt,
+            config={
                 "max_output_tokens": 400,
                 "temperature": 0.4,
             }
@@ -32,7 +28,7 @@ def ask_gemini(prompt: str) -> str:
 
         time.sleep(1)
 
-        # Safe usage metadata extraction
+        # Token usage (if available)
         usage = getattr(response, "usage_metadata", None)
 
         if usage:

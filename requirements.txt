@@ -10,7 +10,7 @@ seaborn
 reportlab
 supabase
 httpx
-google-generativeai
+google-genai
 werkzeug
 dotenv
 xgboost

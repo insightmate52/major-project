@@ -24,6 +24,7 @@ SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "uploads")
 
 supabase_admin = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
+
 # ===========================
 # 💬 BLUEPRINT
 # ===========================
@@ -38,6 +39,7 @@ chat_bp = Blueprint("chat", __name__)
 @chat_bp.route("/ask", methods=["POST"])
 def chat_api():
 
+    # 🔹 Check dataset
     if "dataset_key" not in session:
         return jsonify({"error": "No dataset uploaded"}), 400
 
@@ -48,13 +50,18 @@ def chat_api():
     user_question = data["message"]
     lower_q = user_question.lower()
 
-    # 🔹 Load dataset
-    file_data = supabase_admin.storage.from_(SUPABASE_BUCKET).download(
-        session["dataset_key"]
-    )
-    df = pd.read_csv(BytesIO(file_data))
+    # ===========================
+    # 📂 LOAD DATASET
+    # ===========================
 
-    # 🔹 Schema info
+    try:
+        file_data = supabase_admin.storage.from_(SUPABASE_BUCKET).download(
+            session["dataset_key"]
+        )
+        df = pd.read_csv(BytesIO(file_data))
+    except Exception as e:
+        return jsonify({"error": f"Dataset loading failed: {str(e)}"}), 500
+
     schema_info = {
         "columns": list(df.columns),
         "dtypes": df.dtypes.astype(str).to_dict()
@@ -65,12 +72,17 @@ def chat_api():
     # ===========================
 
     analysis_keywords = [
-        "total", "sum", "average", "mean", "max", "min",
-        "count", "how many", "forecast", "predict",
-        "compare", "growth", "trend"
+    "total", "sum", "average", "mean", "max", "min",
+    "count", "how many", "forecast", "predict",
+    "compare", "growth", "trend",
+    "highest", "lowest", "top", "bottom",
+    "percentage", "distribution"
     ]
 
-    # If NOT analytical → explanation mode
+    # ===========================
+    # 🧠 EXPLANATION MODE
+    # ===========================
+
     if not any(word in lower_q for word in analysis_keywords):
 
         explanation_prompt = f"""
@@ -98,8 +110,12 @@ Do NOT generate Python code.
     planning_prompt = build_planning_prompt(schema_info, user_question)
     generated_code = ask_gemini(planning_prompt)
 
+    if not generated_code:
+        return jsonify({"error": "Model did not generate code"}), 500
+
     # 🔹 Clean markdown formatting
     generated_code = generated_code.strip()
+
     if "```" in generated_code:
         parts = generated_code.split("```")
         if len(parts) >= 2:
@@ -107,7 +123,10 @@ Do NOT generate Python code.
 
     generated_code = generated_code.replace("python", "").strip()
 
-    # 🔹 Validate Python syntax
+    # ===========================
+    # 🔎 VALIDATE PYTHON SYNTAX
+    # ===========================
+
     try:
         ast.parse(generated_code)
     except SyntaxError as e:
@@ -117,7 +136,10 @@ Do NOT generate Python code.
             "error": "Model generated invalid Python code. Please rephrase."
         }), 500
 
-    # 🔹 Execute safely
+    # ===========================
+    # ⚙ EXECUTE SAFELY
+    # ===========================
+
     try:
         allowed_globals = {
             "df": df,
@@ -127,19 +149,21 @@ Do NOT generate Python code.
         }
 
         local_vars = {}
+
         exec(generated_code, allowed_globals, local_vars)
 
-        result = local_vars.get("result") 
+        # 🔹 Primary expected variable
+        result = local_vars.get("result")
+
+        # 🔹 Auto-detect meaningful output if 'result' not defined
         if result is None:
-    # try to auto-detect meaningful result
-         for value in reversed(list(local_vars.values())):
-            if isinstance(value, (pd.Series, pd.DataFrame, int, float, str, dict)):
-                result = value
-            break
-         if result is None:
+            for value in reversed(list(local_vars.values())):
+                if isinstance(value, (pd.Series, pd.DataFrame, int, float, str, dict)):
+                    result = value
+                    break
+
+        if result is None:
             return jsonify({"error": "No valid analytical result generated"}), 500
-         else:
-             return jsonify({"error": "No output generated"}), 500
 
     except Exception as e:
         print("EXEC ERROR:", e)
@@ -152,11 +176,18 @@ Do NOT generate Python code.
     # 🧾 RESPONSE HANDLING
     # ===========================
 
-    # Simple results → no second API call
+    # 🔹 Simple results → direct response
     if isinstance(result, (int, float, str)):
         return jsonify({"answer": f"The result is {result}."})
 
-    # Complex results → explain
+    # 🔹 Convert Series/DataFrame to string safely
+    if isinstance(result, pd.Series):
+        result = result.to_string()
+
+    if isinstance(result, pd.DataFrame):
+        result = result.to_string(index=False)
+
+    # 🔹 Explain complex result using Gemini
     explanation_prompt = f"""
 The dataset analysis produced the following result:
 
