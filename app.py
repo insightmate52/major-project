@@ -196,7 +196,6 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, List
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import inch
-from reportlab.lib import colors
 from reportlab.platypus import HRFlowable
 from datetime import datetime
 import os
@@ -214,7 +213,10 @@ def download_full_report():
     elements = []
     styles = getSampleStyleSheet()
 
+    # ===============================
     # 🔹 Cover Section
+    # ===============================
+
     elements.append(Paragraph("<b>INSIGHTMATE – Data Analytics Report</b>", styles["Title"]))
     elements.append(Spacer(1, 0.3 * inch))
 
@@ -222,11 +224,14 @@ def download_full_report():
         f"Generated On: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         styles["Normal"]
     ))
-    elements.append(Spacer(1, 0.2 * inch))
+    elements.append(Spacer(1, 0.3 * inch))
 
     summary = session.get("dataset_summary", {})
 
+    # ===============================
     # 🔹 Dataset Overview
+    # ===============================
+
     elements.append(HRFlowable(width="100%"))
     elements.append(Spacer(1, 0.2 * inch))
     elements.append(Paragraph("<b>Dataset Overview</b>", styles["Heading2"]))
@@ -249,7 +254,10 @@ def download_full_report():
 
     elements.append(Spacer(1, 0.4 * inch))
 
+    # ===============================
     # 🔹 Textual Insights
+    # ===============================
+
     elements.append(HRFlowable(width="100%"))
     elements.append(Spacer(1, 0.2 * inch))
     elements.append(Paragraph("<b>Key Textual Insights</b>", styles["Heading2"]))
@@ -259,47 +267,57 @@ def download_full_report():
 
     if isinstance(text_insights, list):
         for insight in text_insights:
-            elements.append(Paragraph(insight, styles["Normal"]))
+            elements.append(Paragraph(str(insight), styles["Normal"]))
             elements.append(Spacer(1, 0.15 * inch))
     else:
         elements.append(Paragraph(str(text_insights), styles["Normal"]))
 
     elements.append(Spacer(1, 0.4 * inch))
 
+    # ===============================
     # 🔹 Visual Insights
+    # ===============================
+
     elements.append(HRFlowable(width="100%"))
     elements.append(Spacer(1, 0.2 * inch))
     elements.append(Paragraph("<b>Visual Analysis</b>", styles["Heading2"]))
     elements.append(Spacer(1, 0.2 * inch))
 
     visuals = session.get("insight_visuals", [])
+
     for item in visuals:
+
+        img_path = None
+        explanation = ""
+        severity = ""
+
+        # Case 1: stored as string path
         if isinstance(item, str):
             img_path = os.path.join("static", item)
 
-        if os.path.exists(img_path):
-            elements.append(Image(img_path, width=400, height=250))
-            elements.append(Spacer(1, 0.3 * inch))
+        # Case 2: stored as dict
         elif isinstance(item, dict):
             img_path = os.path.join("static", item.get("path", ""))
+            explanation = item.get("explanation", "")
+            severity = item.get("severity", "")
 
-        if os.path.exists(img_path):
+        # Add image if exists
+        if img_path and os.path.exists(img_path):
             elements.append(Image(img_path, width=400, height=250))
             elements.append(Spacer(1, 0.2 * inch))
 
-        elements.append(Paragraph(
-            f"<b>Explanation:</b> {item.get('explanation','')}",
-            styles["Normal"]
-        ))
-
-        elements.append(Paragraph(
-            f"<b>Severity:</b> {item.get('severity','')}",
-            styles["Normal"]
-        ))
+        # Add explanation/severity only if available
+        if explanation:
+            elements.append(Paragraph(f"<b>Explanation:</b> {explanation}", styles["Normal"]))
+        if severity:
+            elements.append(Paragraph(f"<b>Severity:</b> {severity}", styles["Normal"]))
 
         elements.append(Spacer(1, 0.4 * inch))
 
+    # ===============================
     # 🔹 Red Flag Section
+    # ===============================
+
     red_flags = session.get("red_flag_visuals", [])
 
     if red_flags:
@@ -309,17 +327,34 @@ def download_full_report():
         elements.append(Spacer(1, 0.2 * inch))
 
         for item in red_flags:
-            img_path = os.path.join("static", item["path"])
 
-            if os.path.exists(img_path):
+            img_path = None
+            explanation = ""
+            severity = ""
+
+            if isinstance(item, str):
+                img_path = os.path.join("static", item)
+
+            elif isinstance(item, dict):
+                img_path = os.path.join("static", item.get("path", ""))
+                explanation = item.get("explanation", "")
+                severity = item.get("severity", "")
+
+            if img_path and os.path.exists(img_path):
                 elements.append(Image(img_path, width=400, height=250))
                 elements.append(Spacer(1, 0.2 * inch))
 
-            elements.append(Paragraph(f"<b>Explanation:</b> {item['explanation']}", styles["Normal"]))
-            elements.append(Paragraph(f"<b>Severity:</b> {item['severity']}", styles["Normal"]))
-            elements.append(Spacer(1, 0.5 * inch))
+            if explanation:
+                elements.append(Paragraph(f"<b>Explanation:</b> {explanation}", styles["Normal"]))
+            if severity:
+                elements.append(Paragraph(f"<b>Severity:</b> {severity}", styles["Normal"]))
 
-    # 🔹 Chat Summary (Optional)
+            elements.append(Spacer(1, 0.4 * inch))
+
+    # ===============================
+    # 🔹 Chat Summary
+    # ===============================
+
     chat_history = session.get("chat_history", [])
 
     if chat_history:
@@ -328,9 +363,9 @@ def download_full_report():
         elements.append(Paragraph("<b>Chat Insights</b>", styles["Heading2"]))
         elements.append(Spacer(1, 0.2 * inch))
 
-        for chat in chat_history[-5:]:  # last 5 only
-            elements.append(Paragraph(f"<b>Q:</b> {chat['question']}", styles["Normal"]))
-            elements.append(Paragraph(f"<b>A:</b> {chat['answer']}", styles["Normal"]))
+        for chat in chat_history[-5:]:
+            elements.append(Paragraph(f"<b>Q:</b> {chat.get('question','')}", styles["Normal"]))
+            elements.append(Paragraph(f"<b>A:</b> {chat.get('answer','')}", styles["Normal"]))
             elements.append(Spacer(1, 0.3 * inch))
 
     doc.build(elements)
