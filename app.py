@@ -39,10 +39,10 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "uploads")
-
 supabase_client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 supabase_admin = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
+print("THIS IS THE UPDATED APP.PY")
 # ===========================
 # 🤖 LOAD ML INSIGHT ENGINE
 # ===========================
@@ -273,17 +273,31 @@ def download_full_report():
     elements.append(Spacer(1, 0.2 * inch))
 
     visuals = session.get("insight_visuals", [])
-
     for item in visuals:
-        img_path = os.path.join("static", item["path"])
+        if isinstance(item, str):
+            img_path = os.path.join("static", item)
+
+        if os.path.exists(img_path):
+            elements.append(Image(img_path, width=400, height=250))
+            elements.append(Spacer(1, 0.3 * inch))
+        elif isinstance(item, dict):
+            img_path = os.path.join("static", item.get("path", ""))
 
         if os.path.exists(img_path):
             elements.append(Image(img_path, width=400, height=250))
             elements.append(Spacer(1, 0.2 * inch))
 
-        elements.append(Paragraph(f"<b>Explanation:</b> {item['explanation']}", styles["Normal"]))
-        elements.append(Paragraph(f"<b>Severity:</b> {item['severity']}", styles["Normal"]))
-        elements.append(Spacer(1, 0.5 * inch))
+        elements.append(Paragraph(
+            f"<b>Explanation:</b> {item.get('explanation','')}",
+            styles["Normal"]
+        ))
+
+        elements.append(Paragraph(
+            f"<b>Severity:</b> {item.get('severity','')}",
+            styles["Normal"]
+        ))
+
+        elements.append(Spacer(1, 0.4 * inch))
 
     # 🔹 Red Flag Section
     red_flags = session.get("red_flag_visuals", [])
