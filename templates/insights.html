@@ -86,6 +86,7 @@
     </a>
 </div>
 
+
 <!-- 🚨 CRITICAL RISK INSIGHTS -->
 <div class="card shadow-sm mt-4 border-danger">
   <div class="card-body">
@@ -124,6 +125,18 @@
         ✅ No critical risks detected in this dataset.
       </p>
     {% endif %}
+
+    <hr>
+    <h4>Ask About These Insights</h4>
+    <textarea id="graph-question" class="form-control"
+          placeholder="Ask about the graphs or severity..."></textarea>
+          <br>
+          <button onclick="askGraphQuestion()" class="btn btn-primary">
+            Ask
+          </button>
+          
+          <br><br>
+          <div id="graph-chat-response"></div>
 
   </div>
 </div>
