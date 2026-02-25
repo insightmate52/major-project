@@ -197,180 +197,180 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import inch
 from reportlab.platypus import HRFlowable
-from datetime import datetime
-import os
 
 @app.route("/download_full_report")
 def download_full_report():
 
-    if "dataset_summary" not in session:
-        flash("No dataset found", "warning")
-        return redirect(url_for("upload_page"))
+                if "dataset_summary" not in session:
+                    flash("No dataset found", "warning")
+                    return redirect(url_for("upload_page"))
 
-    file_path = "static/insights/INSIGHTMATE_Report.pdf"
-    doc = SimpleDocTemplate(file_path, pagesize=A4)
+                file_path = "static/insights/INSIGHTMATE_Report.pdf"
+                doc = SimpleDocTemplate(file_path, pagesize=A4)
 
-    elements = []
-    styles = getSampleStyleSheet()
+                elements = []
+                styles = getSampleStyleSheet()
 
-    # ===============================
-    # 🔹 Cover Section
-    # ===============================
+                # ===============================
+                # 🔹 Cover Section
+                # ===============================
 
-    elements.append(Paragraph("<b>INSIGHTMATE – Data Analytics Report</b>", styles["Title"]))
-    elements.append(Spacer(1, 0.3 * inch))
+                elements.append(Paragraph("<b>INSIGHTMATE – Data Analytics Report</b>", styles["Title"]))
+                elements.append(Spacer(1, 0.3 * inch))
 
-    elements.append(Paragraph(
-        f"Generated On: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-        styles["Normal"]
-    ))
-    elements.append(Spacer(1, 0.3 * inch))
+                elements.append(Paragraph(
+                    f"Generated On: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                    styles["Normal"]
+                ))
+                elements.append(Spacer(1, 0.3 * inch))
 
-    summary = session.get("dataset_summary", {})
+                summary = session.get("dataset_summary", {})
 
-    # ===============================
-    # 🔹 Dataset Overview
-    # ===============================
+                # ===============================
+                # 🔹 Dataset Overview
+                # ===============================
 
-    elements.append(HRFlowable(width="100%"))
-    elements.append(Spacer(1, 0.2 * inch))
-    elements.append(Paragraph("<b>Dataset Overview</b>", styles["Heading2"]))
-    elements.append(Spacer(1, 0.2 * inch))
-
-    elements.append(Paragraph(f"Rows: {summary.get('rows')}", styles["Normal"]))
-    elements.append(Paragraph(f"Columns: {summary.get('column_count')}", styles["Normal"]))
-    elements.append(Spacer(1, 0.2 * inch))
-
-    column_list = summary.get("columns", [])
-    elements.append(Paragraph("<b>Column Names:</b>", styles["Normal"]))
-    elements.append(Spacer(1, 0.1 * inch))
-
-    elements.append(
-        ListFlowable(
-            [ListItem(Paragraph(col, styles["Normal"])) for col in column_list],
-            bulletType='bullet'
-        )
-    )
-
-    elements.append(Spacer(1, 0.4 * inch))
-
-    # ===============================
-    # 🔹 Textual Insights
-    # ===============================
-
-    elements.append(HRFlowable(width="100%"))
-    elements.append(Spacer(1, 0.2 * inch))
-    elements.append(Paragraph("<b>Key Textual Insights</b>", styles["Heading2"]))
-    elements.append(Spacer(1, 0.2 * inch))
-
-    text_insights = summary.get("text_insights", [])
-
-    if isinstance(text_insights, list):
-        for insight in text_insights:
-            elements.append(Paragraph(str(insight), styles["Normal"]))
-            elements.append(Spacer(1, 0.15 * inch))
-    else:
-        elements.append(Paragraph(str(text_insights), styles["Normal"]))
-
-    elements.append(Spacer(1, 0.4 * inch))
-
-    # ===============================
-    # 🔹 Visual Insights
-    # ===============================
-
-    elements.append(HRFlowable(width="100%"))
-    elements.append(Spacer(1, 0.2 * inch))
-    elements.append(Paragraph("<b>Visual Analysis</b>", styles["Heading2"]))
-    elements.append(Spacer(1, 0.2 * inch))
-
-    visuals = session.get("insight_visuals", [])
-
-    for item in visuals:
-
-        img_path = None
-        explanation = ""
-        severity = ""
-
-        # Case 1: stored as string path
-        if isinstance(item, str):
-            img_path = os.path.join("static", item)
-
-        # Case 2: stored as dict
-        elif isinstance(item, dict):
-            img_path = os.path.join("static", item.get("path", ""))
-            explanation = item.get("explanation", "")
-            severity = item.get("severity", "")
-
-        # Add image if exists
-        if img_path and os.path.exists(img_path):
-            elements.append(Image(img_path, width=400, height=250))
-            elements.append(Spacer(1, 0.2 * inch))
-
-        # Add explanation/severity only if available
-        if explanation:
-            elements.append(Paragraph(f"<b>Explanation:</b> {explanation}", styles["Normal"]))
-        if severity:
-            elements.append(Paragraph(f"<b>Severity:</b> {severity}", styles["Normal"]))
-
-        elements.append(Spacer(1, 0.4 * inch))
-
-    # ===============================
-    # 🔹 Red Flag Section
-    # ===============================
-
-    red_flags = session.get("red_flag_visuals", [])
-
-    if red_flags:
-        elements.append(HRFlowable(width="100%"))
-        elements.append(Spacer(1, 0.2 * inch))
-        elements.append(Paragraph("<b>Red Flag Analysis</b>", styles["Heading2"]))
-        elements.append(Spacer(1, 0.2 * inch))
-
-        for item in red_flags:
-
-            img_path = None
-            explanation = ""
-            severity = ""
-
-            if isinstance(item, str):
-                img_path = os.path.join("static", item)
-
-            elif isinstance(item, dict):
-                img_path = os.path.join("static", item.get("path", ""))
-                explanation = item.get("explanation", "")
-                severity = item.get("severity", "")
-
-            if img_path and os.path.exists(img_path):
-                elements.append(Image(img_path, width=400, height=250))
+                elements.append(HRFlowable(width="100%"))
+                elements.append(Spacer(1, 0.2 * inch))
+                elements.append(Paragraph("<b>Dataset Overview</b>", styles["Heading2"]))
                 elements.append(Spacer(1, 0.2 * inch))
 
-            if explanation:
-                elements.append(Paragraph(f"<b>Explanation:</b> {explanation}", styles["Normal"]))
-            if severity:
-                elements.append(Paragraph(f"<b>Severity:</b> {severity}", styles["Normal"]))
+                elements.append(Paragraph(f"Rows: {summary.get('rows')}", styles["Normal"]))
+                elements.append(Paragraph(f"Columns: {summary.get('column_count')}", styles["Normal"]))
+                elements.append(Spacer(1, 0.2 * inch))
 
-            elements.append(Spacer(1, 0.4 * inch))
+                column_list = summary.get("columns", [])
+                elements.append(Paragraph("<b>Column Names:</b>", styles["Normal"]))
+                elements.append(Spacer(1, 0.1 * inch))
 
-    # ===============================
-    # 🔹 Chat Summary
-    # ===============================
+                elements.append(
+                    ListFlowable(
+                        [ListItem(Paragraph(col, styles["Normal"])) for col in column_list],
+                        bulletType='bullet'
+                    )
+                )
 
-    chat_history = session.get("chat_history", [])
+                elements.append(Spacer(1, 0.4 * inch))
 
-    if chat_history:
-        elements.append(HRFlowable(width="100%"))
-        elements.append(Spacer(1, 0.2 * inch))
-        elements.append(Paragraph("<b>Chat Insights</b>", styles["Heading2"]))
-        elements.append(Spacer(1, 0.2 * inch))
+                # ===============================
+                # 🔹 Textual Insights
+                # ===============================
 
-        for chat in chat_history[-5:]:
-            elements.append(Paragraph(f"<b>Q:</b> {chat.get('question','')}", styles["Normal"]))
-            elements.append(Paragraph(f"<b>A:</b> {chat.get('answer','')}", styles["Normal"]))
-            elements.append(Spacer(1, 0.3 * inch))
+                elements.append(HRFlowable(width="100%"))
+                elements.append(Spacer(1, 0.2 * inch))
+                elements.append(Paragraph("<b>Key Textual Insights</b>", styles["Heading2"]))
+                elements.append(Spacer(1, 0.2 * inch))
 
-    doc.build(elements)
+                text_insights = summary.get("text_insights", [])
 
-    return redirect("/static/insights/INSIGHTMATE_Report.pdf")
+                if isinstance(text_insights, list):
+                    for insight in text_insights:
+                        elements.append(Paragraph(str(insight), styles["Normal"]))
+                        elements.append(Spacer(1, 0.15 * inch))
+                else:
+                    elements.append(Paragraph(str(text_insights), styles["Normal"]))
+
+                elements.append(Spacer(1, 0.4 * inch))
+
+                # ===============================
+                # 🔹 Visual Insights
+                # ===============================
+
+                elements.append(HRFlowable(width="100%"))
+                elements.append(Spacer(1, 0.2 * inch))
+                elements.append(Paragraph("<b>Visual Analysis</b>", styles["Heading2"]))
+                elements.append(Spacer(1, 0.2 * inch))
+                
+                visuals = session.get("insight_visuals", [])
+                for item in visuals:
+                    img_path = None
+                    explanation = ""
+                    severity = ""
+        
+                # 🔥 YOUR STRUCTURE USES "image"
+                if isinstance(item, dict):
+        
+                    image_name = item.get("image", "").strip()
+        
+                    if image_name:
+                        img_path = os.path.join("static", "insights", image_name)
+        
+                    explanation = item.get("explanation", "")
+                    severity = item.get("severity", "")
+        
+                elif isinstance(item, str):
+                    img_path = os.path.join("static", "insights", item)
+        
+                if img_path and os.path.isfile(img_path):
+                    elements.append(Image(img_path, width=400, height=250))
+                    elements.append(Spacer(1, 0.2 * inch))
+        
+                if explanation:
+                    elements.append(Paragraph(f"<b>Explanation:</b> {explanation}", styles["Normal"]))
+        
+                if severity:
+                    elements.append(Paragraph(f"<b>Severity:</b> {severity}", styles["Normal"]))
+        
+                elements.append(Spacer(1, 0.4 * inch))
+        
+        
+            # ===============================
+            # 🔹 Red Flag Section
+            # ===============================
+                red_flags = session.get("red_flag_visuals", [])
+                if red_flags:
+                    elements.append(HRFlowable(width="100%"))
+                    elements.append(Spacer(1, 0.2 * inch))
+                    elements.append(Paragraph("<b>Red Flag Analysis</b>", styles["Heading2"]))
+                    elements.append(Spacer(1, 0.2 * inch))
+        
+                for item in red_flags:
+        
+                    img_path = None
+                    explanation = ""
+                    severity = ""
+        
+                    if isinstance(item, dict):
+        
+                        image_name = item.get("image", "").strip()
+        
+                        if image_name:
+                            img_path = os.path.join("static", "insights", image_name)
+        
+                        explanation = item.get("explanation", "")
+                        severity = item.get("severity", "")
+        
+                    if img_path and os.path.isfile(img_path):
+                        elements.append(Image(img_path, width=400, height=250))
+                        elements.append(Spacer(1, 0.2 * inch))
+        
+                    if explanation:
+                        elements.append(Paragraph(f"<b>Explanation:</b> {explanation}", styles["Normal"]))
+        
+                    if severity:
+                        elements.append(Paragraph(f"<b>Severity:</b> {severity}", styles["Normal"]))
+        
+                    elements.append(Spacer(1, 0.4 * inch))
+        
+                # ===============================
+                # 🔹 Chat Summary
+                # ===============================
+        
+                chat_history = session.get("chat_history", [])
+        
+                if chat_history:
+                    elements.append(HRFlowable(width="100%"))
+                    elements.append(Spacer(1, 0.2 * inch))
+                    elements.append(Paragraph("<b>Chat Insights</b>", styles["Heading2"]))
+                    elements.append(Spacer(1, 0.2 * inch))
+        
+                    for chat in chat_history[-5:]:
+                        elements.append(Paragraph(f"<b>Q:</b> {chat.get('question','')}", styles["Normal"]))
+                        elements.append(Paragraph(f"<b>A:</b> {chat.get('answer','')}", styles["Normal"]))
+                        elements.append(Spacer(1, 0.3 * inch))
+                        doc.build(elements)
+                        
+                return redirect("/static/insights/INSIGHTMATE_Report.pdf")
 
 # ===========================
 # 📊 Generate graph
