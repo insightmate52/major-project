@@ -78,6 +78,14 @@
   </div>
 </div>
 
+<hr>
+
+<div class="text-center mt-4">
+    <a href="/download_full_report" class="btn btn-danger btn-lg">
+        📥 Download Complete Analytics Report
+    </a>
+</div>
+
 <!-- 🚨 CRITICAL RISK INSIGHTS -->
 <div class="card shadow-sm mt-4 border-danger">
   <div class="card-body">
@@ -144,6 +152,45 @@ function generateGraph() {
     }
   })
   .catch(error => console.error(error));
+}
+</script>
+<script>
+function askGraphQuestion() {
+
+    const questionInput = document.getElementById("graph-question");
+    const responseBox = document.getElementById("graph-chat-response");
+
+    const question = questionInput.value.trim();
+
+    if (!question) {
+        responseBox.innerHTML = "Please enter a question.";
+        return;
+    }
+
+    fetch("/chat/ask", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            question: question,
+            context: "insights_page"   // 🔥 Important flag
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.answer) {
+            responseBox.innerHTML = "<strong>Answer:</strong> " + data.answer;
+        } else {
+            responseBox.innerHTML = "Unable to generate answer.";
+        }
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        responseBox.innerHTML = "Something went wrong.";
+    });
+
+    questionInput.value = "";
 }
 </script>
 {% endblock %}

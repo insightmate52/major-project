@@ -3,7 +3,7 @@ import uuid
 import logging
 import joblib
 import pandas as pd
-
+from datetime import datetime
 from io import BytesIO
 from werkzeug.utils import secure_filename
 from flask import (
@@ -133,6 +133,17 @@ def upload():
         )
 
         session["dataset_key"] = dataset_key
+        dataset_info = {
+            "filename": filename,
+            "rows": df.shape[0],
+            "columns": df.shape[1],
+            "uploaded_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+        session["dataset_info"] = dataset_info
+        if "upload_history" not in session:
+            session["upload_history"] = []
+            session["upload_history"].append(dataset_info)
+            session.modified = True
 
         # 🔹 Clean Data
         df = df.dropna(how="all")
@@ -177,6 +188,140 @@ def upload_page():
         dataset_summary=session.get("dataset_summary"),
         user_email=session.get("user_email")
     )
+
+# ===========================
+# 📄 report download 
+# ===========================
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, ListFlowable, ListItem
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+from reportlab.platypus import HRFlowable
+from datetime import datetime
+import os
+
+@app.route("/download_full_report")
+def download_full_report():
+
+    if "dataset_summary" not in session:
+        flash("No dataset found", "warning")
+        return redirect(url_for("upload_page"))
+
+    file_path = "static/insights/INSIGHTMATE_Report.pdf"
+    doc = SimpleDocTemplate(file_path, pagesize=A4)
+
+    elements = []
+    styles = getSampleStyleSheet()
+
+    # 🔹 Cover Section
+    elements.append(Paragraph("<b>INSIGHTMATE – Data Analytics Report</b>", styles["Title"]))
+    elements.append(Spacer(1, 0.3 * inch))
+
+    elements.append(Paragraph(
+        f"Generated On: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        styles["Normal"]
+    ))
+    elements.append(Spacer(1, 0.2 * inch))
+
+    summary = session.get("dataset_summary", {})
+
+    # 🔹 Dataset Overview
+    elements.append(HRFlowable(width="100%"))
+    elements.append(Spacer(1, 0.2 * inch))
+    elements.append(Paragraph("<b>Dataset Overview</b>", styles["Heading2"]))
+    elements.append(Spacer(1, 0.2 * inch))
+
+    elements.append(Paragraph(f"Rows: {summary.get('rows')}", styles["Normal"]))
+    elements.append(Paragraph(f"Columns: {summary.get('column_count')}", styles["Normal"]))
+    elements.append(Spacer(1, 0.2 * inch))
+
+    column_list = summary.get("columns", [])
+    elements.append(Paragraph("<b>Column Names:</b>", styles["Normal"]))
+    elements.append(Spacer(1, 0.1 * inch))
+
+    elements.append(
+        ListFlowable(
+            [ListItem(Paragraph(col, styles["Normal"])) for col in column_list],
+            bulletType='bullet'
+        )
+    )
+
+    elements.append(Spacer(1, 0.4 * inch))
+
+    # 🔹 Textual Insights
+    elements.append(HRFlowable(width="100%"))
+    elements.append(Spacer(1, 0.2 * inch))
+    elements.append(Paragraph("<b>Key Textual Insights</b>", styles["Heading2"]))
+    elements.append(Spacer(1, 0.2 * inch))
+
+    text_insights = summary.get("text_insights", [])
+
+    if isinstance(text_insights, list):
+        for insight in text_insights:
+            elements.append(Paragraph(insight, styles["Normal"]))
+            elements.append(Spacer(1, 0.15 * inch))
+    else:
+        elements.append(Paragraph(str(text_insights), styles["Normal"]))
+
+    elements.append(Spacer(1, 0.4 * inch))
+
+    # 🔹 Visual Insights
+    elements.append(HRFlowable(width="100%"))
+    elements.append(Spacer(1, 0.2 * inch))
+    elements.append(Paragraph("<b>Visual Analysis</b>", styles["Heading2"]))
+    elements.append(Spacer(1, 0.2 * inch))
+
+    visuals = session.get("insight_visuals", [])
+
+    for item in visuals:
+        img_path = os.path.join("static", item["path"])
+
+        if os.path.exists(img_path):
+            elements.append(Image(img_path, width=400, height=250))
+            elements.append(Spacer(1, 0.2 * inch))
+
+        elements.append(Paragraph(f"<b>Explanation:</b> {item['explanation']}", styles["Normal"]))
+        elements.append(Paragraph(f"<b>Severity:</b> {item['severity']}", styles["Normal"]))
+        elements.append(Spacer(1, 0.5 * inch))
+
+    # 🔹 Red Flag Section
+    red_flags = session.get("red_flag_visuals", [])
+
+    if red_flags:
+        elements.append(HRFlowable(width="100%"))
+        elements.append(Spacer(1, 0.2 * inch))
+        elements.append(Paragraph("<b>Red Flag Analysis</b>", styles["Heading2"]))
+        elements.append(Spacer(1, 0.2 * inch))
+
+        for item in red_flags:
+            img_path = os.path.join("static", item["path"])
+
+            if os.path.exists(img_path):
+                elements.append(Image(img_path, width=400, height=250))
+                elements.append(Spacer(1, 0.2 * inch))
+
+            elements.append(Paragraph(f"<b>Explanation:</b> {item['explanation']}", styles["Normal"]))
+            elements.append(Paragraph(f"<b>Severity:</b> {item['severity']}", styles["Normal"]))
+            elements.append(Spacer(1, 0.5 * inch))
+
+    # 🔹 Chat Summary (Optional)
+    chat_history = session.get("chat_history", [])
+
+    if chat_history:
+        elements.append(HRFlowable(width="100%"))
+        elements.append(Spacer(1, 0.2 * inch))
+        elements.append(Paragraph("<b>Chat Insights</b>", styles["Heading2"]))
+        elements.append(Spacer(1, 0.2 * inch))
+
+        for chat in chat_history[-5:]:  # last 5 only
+            elements.append(Paragraph(f"<b>Q:</b> {chat['question']}", styles["Normal"]))
+            elements.append(Paragraph(f"<b>A:</b> {chat['answer']}", styles["Normal"]))
+            elements.append(Spacer(1, 0.3 * inch))
+
+    doc.build(elements)
+
+    return redirect("/static/insights/INSIGHTMATE_Report.pdf")
 
 # ===========================
 # 📊 Generate graph
@@ -237,8 +382,8 @@ def insights_page():
 def chat_page():
     if "dataset_summary" not in session:
         return redirect(url_for("upload_page"))
-
-    return render_template("chat.html")
+    history = session.get("chat_history", [])
+    return render_template("chat.html", history=history)
 
 # ===========================
 # 🔮 ESTIMATION PAGE

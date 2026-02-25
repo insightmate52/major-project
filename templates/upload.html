@@ -19,6 +19,32 @@
   </form>
 </div>
 
+{% if session.dataset_info %}
+<div class="card p-3 mt-3">
+    <h5>📊 Current Dataset Info</h5>
+    <p><b>Filename:</b> {{ session.dataset_info.filename }}</p>
+    <p><b>Rows:</b> {{ session.dataset_info.rows }}</p>
+    <p><b>Columns:</b> {{ session.dataset_info.columns }}</p>
+    <p><b>Uploaded At:</b> {{ session.dataset_info.uploaded_at }}</p>
+</div>
+{% endif %}
+
+{% if session.upload_history %}
+<div class="card p-3 mt-3">
+    <h5>📂 Upload History</h5>
+    <ul>
+        {% for item in session.upload_history %}
+        <li>
+            {{ item.filename }} |
+            {{ item.rows }} rows |
+            {{ item.columns }} cols |
+            {{ item.uploaded_at }}
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
 {% if dataset_uploads %}
 <div class="card-box">
   <div class="page-title">📂 Uploaded Datasets</div>

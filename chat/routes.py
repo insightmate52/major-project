@@ -47,7 +47,9 @@ def chat_api():
     if not data or "message" not in data:
         return jsonify({"error": "Message is required"}), 400
 
+    # ✅ ADD: Extract question + context
     user_question = data["message"]
+    context = data.get("context")
     lower_q = user_question.lower()
 
     # ===========================
@@ -67,16 +69,33 @@ def chat_api():
         "dtypes": df.dtypes.astype(str).to_dict()
     }
 
+    # ✅ ADD: Graph-aware context injection
+    if context == "insights_page":
+        visual_summary = session.get("insight_visuals", [])
+        red_flags = session.get("red_flag_visuals", [])
+
+        graph_context_text = f"""
+The dataset has generated the following visual insights:
+{visual_summary}
+
+Red flag visuals:
+{red_flags}
+
+Answer the question specifically considering these graphs.
+"""
+    else:
+        graph_context_text = ""
+
     # ===========================
     # 🔍 INTENT DETECTION
     # ===========================
 
     analysis_keywords = [
-    "total", "sum", "average", "mean", "max", "min",
-    "count", "how many", "forecast", "predict",
-    "compare", "growth", "trend",
-    "highest", "lowest", "top", "bottom",
-    "percentage", "distribution"
+        "total", "sum", "average", "mean", "max", "min",
+        "count", "how many", "forecast", "predict",
+        "compare", "growth", "trend",
+        "highest", "lowest", "top", "bottom",
+        "percentage", "distribution"
     ]
 
     # ===========================
@@ -93,6 +112,8 @@ Dataset columns:
 
 The dataset contains {len(df)} rows.
 
+{graph_context_text}
+
 User question:
 {user_question}
 
@@ -101,18 +122,34 @@ Do NOT generate Python code.
 """
 
         explanation = ask_gemini(explanation_prompt)
+
+        # ✅ ADD: Store chat history properly
+        if "chat_history" not in session:
+            session["chat_history"] = []
+
+        session["chat_history"].append({
+            "question": user_question,
+            "answer": explanation
+        })
+        session.modified = True
+
         return jsonify({"answer": explanation})
+
     # ===========================
     # 📊 ANALYTICAL MODE
     # ===========================
 
-    planning_prompt = build_planning_prompt(schema_info, user_question)
+    # ✅ ADD graph context into analytical planning prompt
+    planning_prompt = build_planning_prompt(
+        schema_info,
+        user_question + "\n" + graph_context_text
+    )
+
     generated_code = ask_gemini(planning_prompt)
 
     if not generated_code:
         return jsonify({"error": "Model did not generate code"}), 500
 
-    # 🔹 Clean markdown formatting properly
     generated_code = generated_code.strip()
 
     if "```" in generated_code:
@@ -122,14 +159,9 @@ Do NOT generate Python code.
 
     generated_code = generated_code.replace("python", "").strip()
 
-    # 🔥 DEBUG PRINT
     print("----- GENERATED RAW RESPONSE -----")
     print(generated_code)
     print("-----------------------------------")
-
-    # ===========================
-    # 🔎 VALIDATE PYTHON SYNTAX
-    # ===========================
 
     try:
         ast.parse(generated_code)
@@ -137,10 +169,6 @@ Do NOT generate Python code.
         print("SYNTAX ERROR:", e)
         print("BAD CODE:\n", generated_code)
         return jsonify({"error": "Model generated invalid Python code."}), 500
-
-    # ===========================
-    # ⚙ EXECUTE SAFELY
-    # ===========================
 
     try:
         allowed_globals = {
@@ -156,7 +184,6 @@ Do NOT generate Python code.
 
         result = local_vars.get("result")
 
-        # Auto-detect fallback
         if result is None:
             for value in reversed(list(local_vars.values())):
                 if isinstance(value, (pd.Series, pd.DataFrame, int, float, str, dict)):
@@ -178,7 +205,19 @@ Do NOT generate Python code.
     # ===========================
 
     if isinstance(result, (int, float, str)):
-        return jsonify({"answer": f"The result is {result}."})
+        final_answer = f"The result is {result}."
+
+        # ✅ ADD: Save history
+        if "chat_history" not in session:
+            session["chat_history"] = []
+
+        session["chat_history"].append({
+            "question": user_question,
+            "answer": final_answer
+        })
+        session.modified = True
+
+        return jsonify({"answer": final_answer})
 
     if isinstance(result, pd.Series):
         result = result.to_string()
@@ -196,5 +235,15 @@ Do not restate the question.
 """
 
     explanation = ask_gemini(explanation_prompt)
+
+    # ✅ ADD: Save analytical explanation
+    if "chat_history" not in session:
+        session["chat_history"] = []
+
+    session["chat_history"].append({
+        "question": user_question,
+        "answer": explanation
+    })
+    session.modified = True
 
     return jsonify({"answer": explanation})

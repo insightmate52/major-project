@@ -34,6 +34,11 @@
   </form>
 </div>
 
+<div class="chat-entry">
+    <p><b>You:</b> {{ item.question }}</p>
+    <p><b>INSIGHTMATE:</b> {{ item.answer }}</p>
+</div>
+
 <script>
   const chatForm = document.getElementById("chat-form");
   const chatInput = document.getElementById("chat-input");
@@ -90,6 +95,8 @@
           Error contacting assistant.
         </div>
       `;
+
+      
     }
   });
 </script>
