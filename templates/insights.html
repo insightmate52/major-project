@@ -186,8 +186,8 @@ function askGraphQuestion() {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
-            question: question,
-            context: "insights_page"   // 🔥 Important flag
+          message: question,
+          context: "insights_page"
         })
     })
     .then(response => response.json())
