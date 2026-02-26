@@ -190,14 +190,27 @@ function askGraphQuestion() {
           context: "insights_page"
         })
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.answer) {
-            responseBox.innerHTML = "<strong>Answer:</strong> " + data.answer;
-        } else {
-            responseBox.innerHTML = "Unable to generate answer.";
-        }
-    })
+.then(data => {
+    const responseDiv = document.getElementById("graph-chat-response");
+
+    const questionHTML = `
+        <div style="margin-top:10px;">
+            <strong>You:</strong> ${question}
+        </div>
+    `;
+
+    const answerHTML = `
+        <div style="margin-bottom:15px;">
+            <strong>AI:</strong> ${data.answer || data.error || "Unable to generate answer."}
+        </div>
+        <hr>
+    `;
+
+    responseDiv.innerHTML += questionHTML + answerHTML;
+
+    // Optional: Clear input box
+    document.getElementById("graph-question").value = "";
+})
     .catch(error => {
         console.error("Error:", error);
         responseBox.innerHTML = "Something went wrong.";
