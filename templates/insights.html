@@ -186,9 +186,9 @@ function askGraphQuestion() {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          message: question,
-          context: "insights_page"
-        })
+        message: question,
+        context: "insights_page"
+})
     })
 .then(data => {
     const responseDiv = document.getElementById("graph-chat-response");
