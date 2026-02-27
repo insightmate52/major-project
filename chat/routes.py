@@ -69,22 +69,31 @@ def chat_api():
         "dtypes": df.dtypes.astype(str).to_dict()
     }
 
-    # ✅ ADD: Graph-aware context injection
+        # ✅ ADD: Graph-aware context injection
     if context == "insights_page":
-        visual_summary = session.get("insight_visuals", [])
-        red_flags = session.get("red_flag_visuals", [])
-
-        graph_context_text = f"""
-The dataset has generated the following visual insights:
-{visual_summary}
-
-Red flag visuals:
-{red_flags}
-
-Answer the question specifically considering these graphs.
-"""
+            visual_summary = session.get("insight_visuals", [])
+            red_flags = session.get("red_flag_visuals", [])
+            visual_text = ""
+            for v in visual_summary:
+                if isinstance(v, dict):
+                    visual_text += f"- {v.get('explanation','')} (Severity: {v.get('severity','')})\n"
+            red_flag_text = ""
+            for r in red_flags:
+                if isinstance(r, dict):
+                    red_flag_text += f"- {r.get('explanation','')} (Severity: {r.get('severity','')})\n"
+            graph_context_text = f"""
+    Thefollowing visual insights were generated:
+    
+    {visual_text}
+    
+    Red Flag Findings:
+    
+    {red_flag_text}
+    
+    Answer the question strictly based on these findings.
+    """
     else:
-        graph_context_text = ""
+            graph_context_text = ""
 
     # ===========================
     # 🔍 INTENT DETECTION
