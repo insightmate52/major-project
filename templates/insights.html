@@ -81,11 +81,10 @@
 <hr>
 
 <div class="text-center mt-4">
-    <a href="/download_full_report" class="btn btn-danger btn-lg">
-        📥 Download Complete Analytics Report
-    </a>
+  <a href="/download_full_report" class="btn btn-danger btn-lg">
+    📥 Download Complete Analytics Report
+  </a>
 </div>
-
 
 <!-- 🚨 CRITICAL RISK INSIGHTS -->
 <div class="card shadow-sm mt-4 border-danger">
@@ -127,19 +126,29 @@
     {% endif %}
 
     <hr>
+
+    <!-- 💬 AI Chat Section -->
     <h4>Ask About These Insights</h4>
+
     <textarea id="graph-question" class="form-control"
-          placeholder="Ask about the graphs or severity..."></textarea>
-          <br>
-          <button onclick="askGraphQuestion()" class="btn btn-primary">
-            Ask
-          </button>
-          
-          <br><br>
-          <div id="graph-chat-response"></div>
+      placeholder="Ask about the graphs or severity..."></textarea>
+
+    <br>
+
+    <button onclick="askGraphQuestion()" class="btn btn-primary">
+      Ask
+    </button>
+
+    <br><br>
+
+    <div id="graph-chat-response"></div>
 
   </div>
 </div>
+
+<!-- ============================= -->
+<!-- GRAPH GENERATION SCRIPT -->
+<!-- ============================= -->
 <script>
 function generateGraph() {
 
@@ -167,6 +176,10 @@ function generateGraph() {
   .catch(error => console.error(error));
 }
 </script>
+
+<!-- ============================= -->
+<!-- AI CHAT SCRIPT (FIXED) -->
+<!-- ============================= -->
 <script>
 function askGraphQuestion() {
 
@@ -186,38 +199,39 @@ function askGraphQuestion() {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
-        message: question,
-        context: "insights_page"
-})
+            message: question,
+            context: "insights_page"
+        })
     })
-.then(data => {
-    const responseDiv = document.getElementById("graph-chat-response");
+    .then(response => response.json())  // ✅ FIXED HERE
+    .then(data => {
 
-    const questionHTML = `
-        <div style="margin-top:10px;">
-            <strong>You:</strong> ${question}
-        </div>
-    `;
+        const questionHTML = `
+            <div style="margin-top:10px;">
+                <strong>You:</strong> ${question}
+            </div>
+        `;
 
-    const answerHTML = `
-        <div style="margin-bottom:15px;">
-            <strong>AI:</strong> ${data.answer || data.error || "Unable to generate answer."}
-        </div>
-        <hr>
-    `;
+        const answerText = data.answer && data.answer.trim() !== ""
+            ? data.answer
+            : (data.error || "Unable to generate answer.");
 
-    responseDiv.innerHTML += questionHTML + answerHTML;
+        const answerHTML = `
+            <div style="margin-bottom:15px;">
+                <strong>AI:</strong> ${answerText}
+            </div>
+            <hr>
+        `;
 
-    // Optional: Clear input box
-    document.getElementById("graph-question").value = "";
-})
+        responseBox.innerHTML += questionHTML + answerHTML;
+
+        questionInput.value = "";
+    })
     .catch(error => {
         console.error("Error:", error);
         responseBox.innerHTML = "Something went wrong.";
     });
-
-    questionInput.value = "";
 }
 </script>
-{% endblock %}
 
+{% endblock %}
