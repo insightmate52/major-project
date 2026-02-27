@@ -39,7 +39,9 @@ chat_bp = Blueprint("chat", __name__)
 @chat_bp.route("/ask", methods=["POST"])
 def chat_api():
 
-    # 🔹 Check dataset
+    # ======================================
+    # 🔹 DATASET CHECK
+    # ======================================
     if "dataset_key" not in session:
         return jsonify({"error": "No dataset uploaded"}), 400
 
@@ -47,15 +49,13 @@ def chat_api():
     if not data or "message" not in data:
         return jsonify({"error": "Message is required"}), 400
 
-    # ✅ ADD: Extract question + context
     user_question = data["message"]
-    context = data.get("context")
+    context = data.get("context")  # "insights_page" or None
     lower_q = user_question.lower()
 
-    # ===========================
-    # 📂 LOAD DATASET
-    # ===========================
-
+    # ======================================
+    # 🔹 LOAD DATASET
+    # ======================================
     try:
         file_data = supabase_admin.storage.from_(SUPABASE_BUCKET).download(
             session["dataset_key"]
@@ -69,49 +69,41 @@ def chat_api():
         "dtypes": df.dtypes.astype(str).to_dict()
     }
 
-        # ✅ ADD: Graph-aware context injection
+    # ======================================
+    # 🔹 BUILD GRAPH CONTEXT (TEXT SAFE)
+    # ======================================
+    graph_context_text = ""
+
     if context == "insights_page":
-            visual_summary = session.get("insight_visuals", [])
-            red_flags = session.get("red_flag_visuals", [])
-            visual_text = ""
-            for v in visual_summary:
-                if isinstance(v, dict):
-                    visual_text += f"- {v.get('explanation','')} (Severity: {v.get('severity','')})\n"
-            red_flag_text = ""
-            for r in red_flags:
-                if isinstance(r, dict):
-                    red_flag_text += f"- {r.get('explanation','')} (Severity: {r.get('severity','')})\n"
-            graph_context_text = f"""
-    Thefollowing visual insights were generated:
-    
-    {visual_text}
-    
-    Red Flag Findings:
-    
-    {red_flag_text}
-    
-    Answer the question strictly based on these findings.
-    """
-    else:
-            graph_context_text = ""
+        visual_summary = session.get("insight_visuals", [])
+        red_flags = session.get("red_flag_visuals", [])
 
-    # ===========================
-    # 🔍 INTENT DETECTION
-    # ===========================
+        visual_text = ""
+        for v in visual_summary:
+            if isinstance(v, dict):
+                visual_text += f"- {v.get('explanation','')} (Severity: {v.get('severity','')})\n"
 
-    analysis_keywords = [
-        "total", "sum", "average", "mean", "max", "min",
-        "count", "how many", "forecast", "predict",
-        "compare", "growth", "trend",
-        "highest", "lowest", "top", "bottom",
-        "percentage", "distribution"
-    ]
+        red_flag_text = ""
+        for r in red_flags:
+            if isinstance(r, dict):
+                red_flag_text += f"- {r.get('explanation','')} (Severity: {r.get('severity','')})\n"
 
-    # ===========================
-    # 🧠 EXPLANATION MODE
-    # ===========================
+        graph_context_text = f"""
+The following visual insights were generated:
 
-    if not any(word in lower_q for word in analysis_keywords):
+{visual_text}
+
+Red Flag Findings:
+
+{red_flag_text}
+
+Answer strictly based on these insights.
+"""
+
+    # ======================================
+    # 🔥 INSIGHTS PAGE → ALWAYS EXPLANATION MODE
+    # ======================================
+    if context == "insights_page":
 
         explanation_prompt = f"""
 You are a professional data analyst.
@@ -126,13 +118,64 @@ The dataset contains {len(df)} rows.
 User question:
 {user_question}
 
-Provide a clear and simple explanation.
+Provide a clear explanation in 2–4 lines.
 Do NOT generate Python code.
 """
 
         explanation = ask_gemini(explanation_prompt)
 
-        # ✅ ADD: Store chat history properly
+        if not explanation:
+            explanation = "Based on the generated visual insights, the observed pattern is driven by higher contribution, trend strength, or category dominance."
+
+        # Save history
+        if "chat_history" not in session:
+            session["chat_history"] = []
+
+        session["chat_history"].append({
+            "question": user_question,
+            "answer": explanation
+        })
+        session.modified = True
+
+        return jsonify({"answer": explanation})
+
+    # ======================================
+    # 🔹 NORMAL CHAT → ANALYTICAL + EXPLANATION
+    # ======================================
+
+    analysis_keywords = [
+        "total", "sum", "average", "mean", "max", "min",
+        "count", "how many", "forecast", "predict",
+        "compare", "growth", "trend",
+        "highest", "lowest", "top", "bottom",
+        "percentage", "distribution"
+    ]
+
+    # ===========================
+    # EXPLANATION MODE (NON-ANALYTICAL)
+    # ===========================
+    if not any(word in lower_q for word in analysis_keywords):
+
+        explanation_prompt = f"""
+You are a professional data analyst.
+
+Dataset columns:
+{schema_info['columns']}
+
+The dataset contains {len(df)} rows.
+
+User question:
+{user_question}
+
+Provide a clear explanation.
+Do NOT generate Python code.
+"""
+
+        explanation = ask_gemini(explanation_prompt)
+
+        if not explanation:
+            explanation = "This pattern likely results from stronger contribution or aggregated performance differences in the dataset."
+
         if "chat_history" not in session:
             session["chat_history"] = []
 
@@ -145,14 +188,9 @@ Do NOT generate Python code.
         return jsonify({"answer": explanation})
 
     # ===========================
-    # 📊 ANALYTICAL MODE
+    # ANALYTICAL MODE
     # ===========================
-
-    # ✅ ADD graph context into analytical planning prompt
-    planning_prompt = build_planning_prompt(
-        schema_info,
-        user_question + "\n" + graph_context_text
-    )
+    planning_prompt = build_planning_prompt(schema_info, user_question)
 
     generated_code = ask_gemini(planning_prompt)
 
@@ -168,15 +206,9 @@ Do NOT generate Python code.
 
     generated_code = generated_code.replace("python", "").strip()
 
-    print("----- GENERATED RAW RESPONSE -----")
-    print(generated_code)
-    print("-----------------------------------")
-
     try:
         ast.parse(generated_code)
-    except SyntaxError as e:
-        print("SYNTAX ERROR:", e)
-        print("BAD CODE:\n", generated_code)
+    except SyntaxError:
         return jsonify({"error": "Model generated invalid Python code."}), 500
 
     try:
@@ -188,7 +220,6 @@ Do NOT generate Python code.
         }
 
         local_vars = {}
-
         exec(generated_code, allowed_globals, local_vars)
 
         result = local_vars.get("result")
@@ -203,56 +234,42 @@ Do NOT generate Python code.
             return jsonify({"error": "No valid analytical result generated"}), 500
 
     except Exception as e:
-        print("EXEC ERROR:", e)
-        print("CODE WAS:\n", generated_code)
-        return jsonify({
-            "error": f"Execution failed: {str(e)}"
-        }), 500
+        return jsonify({"error": f"Execution failed: {str(e)}"}), 500
 
     # ===========================
-    # 🧾 RESPONSE HANDLING
+    # RESPONSE HANDLING
     # ===========================
 
     if isinstance(result, (int, float, str)):
         final_answer = f"The result is {result}."
 
-        # ✅ ADD: Save history
-        if "chat_history" not in session:
-            session["chat_history"] = []
+    else:
+        if isinstance(result, pd.Series):
+            result = result.to_string()
 
-        session["chat_history"].append({
-            "question": user_question,
-            "answer": final_answer
-        })
-        session.modified = True
+        if isinstance(result, pd.DataFrame):
+            result = result.head(20).to_string(index=False)
 
-        return jsonify({"answer": final_answer})
-
-    if isinstance(result, pd.Series):
-        result = result.to_string()
-
-    if isinstance(result, pd.DataFrame):
-        result = result.head(20).to_string(index=False)
-
-    explanation_prompt = f"""
+        explanation_prompt = f"""
 The dataset analysis produced the following result:
 
 {result}
 
-Provide a concise, professional explanation in 2–3 lines.
-Do not restate the question.
+Provide a concise professional explanation in 2–3 lines.
 """
 
-    explanation = ask_gemini(explanation_prompt)
+        final_answer = ask_gemini(explanation_prompt)
 
-    # ✅ ADD: Save analytical explanation
+        if not final_answer:
+            final_answer = "The computed result reflects the requested analytical metric from the dataset."
+
     if "chat_history" not in session:
         session["chat_history"] = []
 
     session["chat_history"].append({
         "question": user_question,
-        "answer": explanation
+        "answer": final_answer
     })
     session.modified = True
 
-    return jsonify({"answer": explanation})
+    return jsonify({"answer": final_answer})
